@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig host="dsmlp-login.ucsd.edu" id="05c9a15a-64ec-40c5-a2a3-3c1428e7078e" keyPath="$USER_HOME$/.ssh/id_rsa" port="22" nameFormat="DESCRIPTIVE" username="whogan" />
+    </configs>
+  </component>
+</project>
