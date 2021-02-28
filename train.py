@@ -112,9 +112,9 @@ def main(args):
 
     # Directories
     make_directory('saved_models/' + timestamp)
-    train_file = 'data/train.csv'
-    dev_file = 'data/dev.csv'
-    test_file = 'data/test.csv'
+    train_file = 'data/train_v130k.csv'
+    dev_file = 'data/dev_v130k.csv'
+    test_file = 'data/test_v130k.csv'
 
     # Init vars
     device = set_device()  # GPU / CPU

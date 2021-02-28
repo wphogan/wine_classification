@@ -18,9 +18,12 @@ def initial_load(file_name):
 
     # Load the dataset into a dataframe
     df = pd.read_csv(file_name, encoding='utf-8')
+    df = df.fillna('')  # replace nan with an empty string
+
+    x = list(df['country'] + df['designation'] + df['province'] + df['region_1'] + df['region_2'] + str(df['price']) + df['winery'] + df['taster_name'] + str(df['points']) + df['title'] + df['description'])
+
     df['variety'] = pd.Categorical(df['variety']).codes
     label_encoder.fit(df['variety'])
-    x = list(df['description'])
     y = list(label_encoder.transform(df['variety']))
     n_categories = max(y) + 1  # max categorical number plus 1 for zero category
     return x, y, n_categories, label_encoder
