@@ -11,22 +11,32 @@ def inspect(df):
     print("COLS:\n", df.columns)
     print("ALL:\n", df)
 
-
-def initial_load(file_name):
-    # Init label encoder:
+def fit_labels(f_train, f_dev, f_test):
     label_encoder = LabelEncoder()
+    df_train = pd.read_csv(f_train, encoding='utf-8')
+    df_dev = pd.read_csv(f_dev, encoding='utf-8')
+    df_test = pd.read_csv(f_test, encoding='utf-8')
+    frames = [df_train, df_dev, df_test]
+    df_combined = pd.concat(frames, ignore_index=True)
+    df_combined = df_combined.fillna('')  # replace nan with an empty string
+    label_encoder.fit(df_combined['variety'])
+    n_categories = len(label_encoder.classes_)
+    return label_encoder, n_categories
+
+def initial_load(file_name, label_encoder):
 
     # Load the dataset into a dataframe
     df = pd.read_csv(file_name, encoding='utf-8')
     df = df.fillna('')  # replace nan with an empty string
 
-    x = list(df['country'] + df['designation'] + df['province'] + df['region_1'] + df['region_2'] + str(df['price']) + df['winery'] + df['taster_name'] + str(df['points']) + df['title'] + df['description'])
+    x = list(df['country'] + ' ' + df['designation'] +  ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df['region_2'] + ' ' + str(df['price']) + ' ' + df['winery'] + ' ' + df['taster_name'] + ' ' +str(df['points']) + ' ' + df['title'] + ' ' + df['description'])
+    # x = list(df['title']) # Just the title
+    # x = list(df['description']) # Just the description
 
-    df['variety'] = pd.Categorical(df['variety']).codes
-    label_encoder.fit(df['variety'])
+
     y = list(label_encoder.transform(df['variety']))
-    n_categories = max(y) + 1  # max categorical number plus 1 for zero category
-    return x, y, n_categories, label_encoder
+
+    return x, y
 
 
 def load_dataset(tokenizer, max_len, x, y):
@@ -35,7 +45,6 @@ def load_dataset(tokenizer, max_len, x, y):
 
 
 def gen_dataloader_test(test_dataset, batch_size):
-    # For test the order doesn't matter, so we'll just read them sequentially.
     test_dataloader = DataLoader(
         test_dataset,  # The validation samples.
         sampler=SequentialSampler(test_dataset),  # Pull predictions batches sequentially.
@@ -59,7 +68,6 @@ def tokenize(tokenizer, documents, labels, max_len):
     labels_list = []
 
     # For every sentence...
-    n_docs = len(documents)
     for i, doc in enumerate(documents):
         # `encode_plus` will:
         #   (1) Tokenize the sentence.
