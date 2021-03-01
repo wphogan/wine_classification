@@ -8,13 +8,6 @@ import torch
 from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix, accuracy_score
 
 
-def csv_to_list_x(filename):
-    '''Text to list'''
-    df = pd.read_csv(filename)
-    x = list(df['text'])
-    return x
-
-
 def init_logger(model_name, log_filename):
     logger = logging.getLogger(model_name)
     hdlr = logging.FileHandler(log_filename)
@@ -23,28 +16,6 @@ def init_logger(model_name, log_filename):
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
     return logger
-
-
-def preds_to_csv_file(preds, time_stamp, model_name='bert', debug=False):
-    if debug:
-        output_file = "predictions/debug_{}_{}_predicted.csv".format(time_stamp, model_name)
-    else:
-        output_file = "predictions/{}_{}_predicted.csv".format(time_stamp, model_name)
-    dic = {"Id": [], "Predicted": []}
-    for i, pred in enumerate(preds):
-        dic["Id"].append(i)
-        dic["Predicted"].append(pred)
-
-    dic_df = pd.DataFrame.from_dict(dic)
-    dic_df.to_csv(output_file, index=False)
-    print("SAVED PREDICTION FILE: ", output_file)
-
-
-def csv_to_list_y(filename):
-    '''Labels to list'''
-    df = pd.read_csv(filename)
-    y = list(pd.Categorical(df['label']).codes)
-    return y
 
 
 def set_device():
@@ -97,25 +68,6 @@ def save_model(time_stamp, model, tokenizer, epochs, batch_size, max_len, learni
     torch.save(args, os.path.join(model_dir, 'training_args.bin'))
 
 
-def annot_confusion_matrix(valid_tags, pred_tags):
-    """
-    Create an annotated confusion matrix by adding label
-    annotations and formatting to sklearn's `confusion_matrix`.
-    """
-
-    # Create header from unique tags
-    header = sorted(list(set(valid_tags + pred_tags)))
-
-    # Calculate the actual confusion matrix
-    matrix = confusion_matrix(valid_tags, pred_tags, labels=header)
-
-    # Final formatting touches for the string output
-    mat_formatted = [header[i] + "\t" + str(row) for i, row in enumerate(matrix)]
-    content = "\t" + " ".join(header) + "\n" + "\n".join(mat_formatted)
-
-    return content
-
-
 def record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
                set_optimizer=False, net=False):
     print(f'++++++++++++{experiment_title}++++++++++++')
@@ -138,57 +90,6 @@ def record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokeniz
     if net:
         logger.info(f'net: {net}')
         print(f'net: {net}')
-
-
-def flatten(predictions, true_labels, main_run=False):
-    if main_run:
-        test_preds = np.concatenate(predictions, axis=0)
-        test_labels = np.concatenate(true_labels, axis=0)
-        test_preds = np.argmax(test_preds, axis=1).flatten()
-        test_labels = test_labels.flatten()
-    else:
-        test_preds = np.argmax(np.asarray(predictions).squeeze(), axis=1)
-        test_labels = np.asarray(true_labels).squeeze()
-    return test_preds, test_labels
-
-
-def flatten_logits(logits, doc_ids, main_run=False):
-    if main_run:
-        try:
-            logits_flat = np.concatenate(logits, axis=0)
-            ids_flat = np.concatenate(doc_ids, axis=0)
-        except:
-            print('Flatten exception')
-            logits_flat = np.concatenate(np.asarray(logits), axis=0)
-            temp = []
-            for id in doc_ids:
-                for single_id in id:
-                    temp.append(single_id.cpu())
-            print('temp len: ', len(temp))
-            ids_flat = np.asarray(temp)
-
-    else:
-        print('not main run!!')
-        logits_flat = np.concatenate(logits, axis=0)
-        ids_flat = np.concatenate(doc_ids, axis=0)
-        # ORIG:
-        # logits_flat = np.asarray(logits).squeeze()
-        # ids_flat = np.asarray(doc_ids).squeeze()
-    return logits_flat, ids_flat
-
-
-def index_to_text(test_preds, test_labels, le):
-    pred_flat_text = list(le.inverse_transform(test_preds))
-    label_flat_text = list(le.inverse_transform(test_labels))
-    return pred_flat_text, label_flat_text
-
-
-def confusion_classification(test_preds, test_labels, le, logger):
-    pred_flat_text, label_flat_text = index_to_text(test_preds, test_labels, le)
-    cl_report = classification_report(label_flat_text, pred_flat_text)
-    conf_mat = annot_confusion_matrix(label_flat_text, pred_flat_text)
-    logger.info(f"Classification Report:\n {cl_report}")
-    logger.info(f"Confusion Matrix:\n {conf_mat}")
 
 
 def flat_accuracy(preds, labels):

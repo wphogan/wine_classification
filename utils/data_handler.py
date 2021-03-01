@@ -1,15 +1,10 @@
 import pandas as pd
 import torch
+import re
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data import TensorDataset
-
-
-def inspect(df):
-    print("HEAD:\n", df.head())
-    print("DESCRIBE:\n", df.describe())
-    print("COLS:\n", df.columns)
-    print("ALL:\n", df)
+from nltk.corpus import stopwords
 
 
 def fit_labels(f_train, f_dev, f_test):
@@ -25,22 +20,46 @@ def fit_labels(f_train, f_dev, f_test):
     return label_encoder, n_categories
 
 
-def initial_load(file_name, label_encoder):
+def initial_load(file_name, label_encoder, no_stop_words=True):
     # Load the dataset into a dataframe
     df = pd.read_csv(file_name, encoding='utf-8')
     df = df.fillna('')  # replace nan with an empty string
 
-    # x = list(df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df[
+    # CHOOSE THE MODELS FEATURES HERE:
+    # All fields:
+    # df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df[
     #     'region_2'] + ' ' + str(df['price']) + ' ' + df['winery'] + ' ' + df['taster_name'] + ' ' + str(
-    #     df['points']) + ' ' + df['title'] + ' ' + df['description']) # All fields
-    x = list(df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df[
-        'region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description'])  # Without price, points, and taster_name
-    # x = list(df['title']) # Just the title
-    # x = list(df['description']) # Just the description
+    #     df['points']) + ' ' + df['title'] + ' ' + df['description'] # All fields
+
+    # Without price, points, and taster_name
+    df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + \
+                           df[
+                               'region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description']
+
+    # Just the title
+    # df['model_features'] = df['title']
+
+    # Just the description
+    # df['model_features'] = df['description']
+
+    # Remove stop words
+    if no_stop_words:
+        x = remove_stop_words(df['model_features'])
+    else:
+        x = list(df['model_features'])
 
     y = list(label_encoder.transform(df['variety']))
-
     return x, y
+
+
+def remove_stop_words(df):
+    sw = stopwords.words('english')
+    list_of_words = []
+    for phase_word in df:
+        list_of_words.append(
+            ' '.join([re.sub('[^a-zA-Z0-9]', '', word) for word in phase_word.split() if not word in sw]))
+    x = list_of_words
+    return x
 
 
 def load_dataset(tokenizer, max_len, x, y):

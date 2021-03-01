@@ -108,7 +108,7 @@ def main(args):
     learning_rate = 1e-5
     adam_epsilon = 1e-8
     set_optimizer = 'adam'  # sdg or adam
-    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name'
+    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name - No Stop Words'
 
     record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
                set_optimizer)
