@@ -102,13 +102,13 @@ def main(args):
     # Hyperparameters
     epochs = 10
     batch_size = 16
-    max_len = 128 # 256
+    max_len = 256 # 256
     tokenizer_name = 'bert-base-uncased'
-    early_stop_epochs = 4
-    learning_rate = 3e-5
+    early_stop_epochs = 3
+    learning_rate = 1e-5
     adam_epsilon = 1e-8
     set_optimizer = 'adam'  # sdg or adam
-    experiment_title = 'Baseline Bert Experiment'
+    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name'
 
     record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
                set_optimizer)

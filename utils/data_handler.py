@@ -11,6 +11,7 @@ def inspect(df):
     print("COLS:\n", df.columns)
     print("ALL:\n", df)
 
+
 def fit_labels(f_train, f_dev, f_test):
     label_encoder = LabelEncoder()
     df_train = pd.read_csv(f_train, encoding='utf-8')
@@ -23,16 +24,19 @@ def fit_labels(f_train, f_dev, f_test):
     n_categories = len(label_encoder.classes_)
     return label_encoder, n_categories
 
-def initial_load(file_name, label_encoder):
 
+def initial_load(file_name, label_encoder):
     # Load the dataset into a dataframe
     df = pd.read_csv(file_name, encoding='utf-8')
     df = df.fillna('')  # replace nan with an empty string
 
-    x = list(df['country'] + ' ' + df['designation'] +  ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df['region_2'] + ' ' + str(df['price']) + ' ' + df['winery'] + ' ' + df['taster_name'] + ' ' +str(df['points']) + ' ' + df['title'] + ' ' + df['description'])
+    # x = list(df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df[
+    #     'region_2'] + ' ' + str(df['price']) + ' ' + df['winery'] + ' ' + df['taster_name'] + ' ' + str(
+    #     df['points']) + ' ' + df['title'] + ' ' + df['description']) # All fields
+    x = list(df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + df[
+        'region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description'])  # Without price, points, and taster_name
     # x = list(df['title']) # Just the title
     # x = list(df['description']) # Just the description
-
 
     y = list(label_encoder.transform(df['variety']))
 

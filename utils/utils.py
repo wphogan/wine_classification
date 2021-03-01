@@ -5,7 +5,6 @@ import pickle
 import numpy as np
 import pandas as pd
 import torch
-from seqeval.metrics import classification_report
 from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix, accuracy_score
 
 
@@ -193,7 +192,7 @@ def confusion_classification(test_preds, test_labels, le, logger):
 
 
 def flat_accuracy(preds, labels):
-    return np.sum(preds == labels) / len(labels)
+    return np.sum(np.asarray(preds) == np.asarray(labels)) / len(labels)
 
 
 def metrics(title, truths, preds):
