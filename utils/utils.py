@@ -3,9 +3,8 @@ import os
 import pickle
 
 import numpy as np
-import pandas as pd
 import torch
-from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 
 def init_logger(model_name, log_filename):

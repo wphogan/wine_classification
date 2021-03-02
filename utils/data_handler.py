@@ -8,6 +8,9 @@ from nltk.corpus import stopwords
 
 
 def fit_labels(f_train, f_dev, f_test):
+    '''
+    Encode labels for all data
+    '''
     label_encoder = LabelEncoder()
     df_train = pd.read_csv(f_train, encoding='utf-8')
     df_dev = pd.read_csv(f_dev, encoding='utf-8')
@@ -21,6 +24,9 @@ def fit_labels(f_train, f_dev, f_test):
 
 
 def initial_load(file_name, label_encoder, no_stop_words=True):
+    '''
+    Load data from file, return features (x) and labels (y)
+    '''
     # Load the dataset into a dataframe
     df = pd.read_csv(file_name, encoding='utf-8')
     df = df.fillna('')  # replace nan with an empty string
@@ -31,15 +37,14 @@ def initial_load(file_name, label_encoder, no_stop_words=True):
     #     'region_2'] + ' ' + str(df['price']) + ' ' + df['winery'] + ' ' + df['taster_name'] + ' ' + str(
     #     df['points']) + ' ' + df['title'] + ' ' + df['description'] # All fields
 
-    # Without price, points, and taster_name
+    # Without price, points, and taster_name:
     df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + \
-                           df[
-                               'region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description']
+                           df['region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description']
 
-    # Just the title
+    # Just the title:
     # df['model_features'] = df['title']
 
-    # Just the description
+    # Just the description:
     # df['model_features'] = df['description']
 
     # Remove stop words
@@ -53,6 +58,9 @@ def initial_load(file_name, label_encoder, no_stop_words=True):
 
 
 def remove_stop_words(df):
+    '''
+    Remove all english stopwords using NLTK library
+    '''
     sw = stopwords.words('english')
     list_of_words = []
     for phase_word in df:
@@ -68,6 +76,9 @@ def load_dataset(tokenizer, max_len, x, y):
 
 
 def gen_dataloader_test(test_dataset, batch_size):
+    '''
+    Sequential data sampler for dev and test sets
+    '''
     test_dataloader = DataLoader(
         test_dataset,  # The validation samples.
         sampler=SequentialSampler(test_dataset),  # Pull predictions batches sequentially.
@@ -77,6 +88,9 @@ def gen_dataloader_test(test_dataset, batch_size):
 
 
 def gen_dataloaders(train_dataset, batch_size):
+    '''
+    Randomized data sampler for train set
+    '''
     train_dataloader = DataLoader(
         train_dataset,  # The training samples.
         sampler=RandomSampler(train_dataset),  # Select batches randomly
@@ -86,6 +100,9 @@ def gen_dataloaders(train_dataset, batch_size):
 
 
 def tokenize(tokenizer, documents, labels, max_len):
+    '''
+    Tokenize features
+    '''
     # Tokenize all of the sentences and map the tokens to thier word IDs.
     input_ids = []
     labels_list = []
