@@ -18,13 +18,13 @@ def main(args):
     Variables & Directories
     """
     # Saved model and results location
-    ts = 'temp'
+    timestamp = '0301_085531' # timestamp of best model
     t_name = 'test_v130k'
     test_file = 'data/{}.csv'.format(t_name)
 
     # Directories
-    model_dir = 'saved_models/' + ts
-    results_file = 'log/{}_results.txt'.format(ts)
+    model_dir = 'saved_models/' + timestamp
+    results_file = 'log/{}_results.txt'.format(timestamp)
     label_encoder_file = model_dir + '/label_encoder.pkl'
     print("Model: {}, Data: {}, Results file: {}".format(model_dir, test_file, results_file))
     open(results_file, 'w').close()  # clear file
@@ -41,7 +41,8 @@ def main(args):
     """
     # Hyper-parameters
     batch_size = 1
-    max_len = 128
+    max_len = 256
+    remove_stopwords = False
     device = set_device()
     print('Using: {}'.format(device))
 
@@ -57,7 +58,7 @@ def main(args):
     model.eval()
 
     # Load data
-    x_test, y_test = initial_load(test_file, label_encoder)
+    x_test, y_test = initial_load(test_file, label_encoder, no_stop_words=remove_stopwords)
     if args.debug:
         x_test, y_test = x_test[: 100], y_test[:100]
         print("DEBUG WARNING: SHORTENED TEST SET!!!!")

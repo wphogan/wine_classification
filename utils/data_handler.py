@@ -1,7 +1,7 @@
 import pandas as pd
 import torch
 import re
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data import TensorDataset
 from nltk.corpus import stopwords
@@ -12,6 +12,7 @@ def fit_labels(f_train, f_dev, f_test):
     Encode labels for all data
     '''
     label_encoder = LabelEncoder()
+    one_hot_encoder = OneHotEncoder(handle_unknown='ignore')
     df_train = pd.read_csv(f_train, encoding='utf-8')
     df_dev = pd.read_csv(f_dev, encoding='utf-8')
     df_test = pd.read_csv(f_test, encoding='utf-8')
@@ -19,8 +20,9 @@ def fit_labels(f_train, f_dev, f_test):
     df_combined = pd.concat(frames, ignore_index=True)
     df_combined = df_combined.fillna('')  # replace nan with an empty string
     label_encoder.fit(df_combined['variety'])
+    one_hot_encoder.fit_transform(label_encoder.transform(label_encoder.classes_).reshape(-1,1))
     n_categories = len(label_encoder.classes_)
-    return label_encoder, n_categories
+    return label_encoder, n_categories, one_hot_encoder
 
 
 def initial_load(file_name, label_encoder, no_stop_words=True):

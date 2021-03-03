@@ -68,27 +68,21 @@ def save_model(time_stamp, model, tokenizer, epochs, batch_size, max_len, learni
 
 
 def record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
-               set_optimizer=False, net=False):
-    print(f'++++++++++++{experiment_title}++++++++++++')
-    print(f'Epochs: {epochs}')
-    print(f'batch_size: {batch_size}')
-    print(f'max_len: {max_len}')
-    print(f'learning_rate: {learning_rate}')
-    print(f'tokenizer name: {tokenizer_name}')
-    print(f'adam_epsilon: {adam_epsilon}')
-    print(f'optimizer: {set_optimizer}')
-
-    logger.info(f'++++++++++++{experiment_title}++++++++++++')
-    logger.info(f'Epochs: {epochs}')
-    logger.info(f'batch_size: {batch_size}')
-    logger.info(f'max_len: {max_len}')
-    logger.info(f'learning_rate: {learning_rate}')
-    logger.info(f'tokenizer name: {tokenizer_name}')
-    logger.info(f'adam_epsilon: {adam_epsilon}')
-    logger.info(f'optimizer: {set_optimizer}')
-    if net:
-        logger.info(f'net: {net}')
-        print(f'net: {net}')
+               loss_func, set_optimizer=False):
+    messages = [
+        f'++++++++++++{experiment_title}++++++++++++',
+        f'Epochs: {epochs}',
+        f'batch_size: {batch_size}',
+        f'max_len: {max_len}',
+        f'learning_rate: {learning_rate}',
+        f'tokenizer name: {tokenizer_name}',
+        f'adam_epsilon: {adam_epsilon}',
+        f'optimizer: {set_optimizer}',
+        f'loss function: {loss_func}'
+    ]
+    for message in messages: # Print and log experimental setup
+        print(message)
+        logger.info(message)
 
 
 def flat_accuracy(preds, labels):

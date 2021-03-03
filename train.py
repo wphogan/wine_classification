@@ -3,11 +3,14 @@ from datetime import datetime
 import argparse
 
 from numpy import inf
+import torch.nn as nn
+import torch.nn.functional as F
 from transformers import AutoTokenizer
 from transformers import BertForSequenceClassification, AdamW
 from transformers import get_linear_schedule_with_warmup
 
 # Local Imports
+from custom_loss import CustomLoss
 from utils.data_handler import *
 from utils.utils import *
 
@@ -36,16 +39,21 @@ def load_tokenizer_and_model(device, n_categories):
     return tok, model.to(device)
 
 
-def run_validation_set(model, dev_dataloader, device):
+def run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function):
     model.eval()
     predictions, model_name, eval_losses, true_labels = [], [], [], []
     for batch in dev_dataloader:
         b_input_ids, b_labels = tuple(t.to(device) for t in batch)
         with torch.no_grad():
-            (loss, logits) = model(b_input_ids,
-                                   token_type_ids=None,
-                                   labels=b_labels.long())
+            (cross_ent_loss, logits) = model(b_input_ids,
+                                             token_type_ids=None,
+                                             labels=b_labels.long())
 
+        if loss_function == 'kl_divergence':
+            kl_labels = torch.Tensor(one_hot_encoder.transform(b_labels.cpu().reshape(-1, 1)).toarray()).to(device)
+            loss = F.kl_div(F.log_softmax(logits, 0), kl_labels, reduction="sum").mean()
+        else:
+            loss = criterion(logits, b_labels)
         eval_losses.append(loss.item())
 
         # Move logits and labels to CPU
@@ -101,17 +109,32 @@ def analysis(model, test_dataloader, device, test_name):
 def main(args):
     # Hyperparameters
     epochs = 10
-    batch_size = 16
-    max_len = 256 # 256
+    batch_size = 16  # 16, 32
+    max_len = 256  # 128, 256, 512
     tokenizer_name = 'bert-base-uncased'
-    early_stop_epochs = 3
-    learning_rate = 1e-5
+    early_stop_epochs = 2
+    learning_rate = 1e-5  # 2e-5, 3e-5, 4e-5, 5e-5
     adam_epsilon = 1e-8
     set_optimizer = 'adam'  # sdg or adam
-    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name - No Stop Words'
+    remove_stopwords = False  # T/F
+    loss_function = 'kl_divergence'  # cross_entropy, kl_divergence, custom
+    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name'
 
+    # Record experiment settings:
     record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
-               set_optimizer)
+               loss_function, set_optimizer)
+
+    # Loss function
+    if loss_function == 'cross_entropy':
+        criterion = nn.CrossEntropyLoss()
+    elif loss_function == 'kl_divergence':
+        criterion = nn.KLDivLoss()
+    elif loss_function == 'custom':
+        criterion = CustomLoss()
+    else:
+        raise Exception(
+            'Loss function not recognized. Please select from "cross_entropy", "kl_divergence", "custom"')
+
 
     # Directories
     make_directory('saved_models/' + timestamp)
@@ -126,10 +149,10 @@ def main(args):
 
     # Initial data load to get categories:
     logger.info('Initial data loading:')
-    label_encoder, n_categories = fit_labels(train_file, dev_file, test_file)
-    x_train, y_train = initial_load(train_file, label_encoder)
-    x_dev, y_dev = initial_load(dev_file, label_encoder)
-    x_test, y_test = initial_load(test_file, label_encoder)
+    label_encoder, n_categories, one_hot_encoder = fit_labels(train_file, dev_file, test_file)
+    x_train, y_train = initial_load(train_file, label_encoder, no_stop_words=remove_stopwords)
+    x_dev, y_dev = initial_load(dev_file, label_encoder, no_stop_words=remove_stopwords)
+    x_test, y_test = initial_load(test_file, label_encoder, no_stop_words=remove_stopwords)
     save_labels(label_encoder, timestamp)
 
     # Shortened run for debugging
@@ -174,10 +197,16 @@ def main(args):
         for step, batch in enumerate(train_dataloader):
             b_input_ids, b_labels = tuple(t.to(device) for t in batch)
             model.zero_grad()
-            loss, logits = model(b_input_ids,
-                                 token_type_ids=None,
-                                 labels=b_labels.long())
+            cross_ent_loss, logits = model(b_input_ids,
+                                           token_type_ids=None,
+                                           labels=b_labels.long())
 
+
+            if loss_function == 'kl_divergence': # convert to one-hot labels
+                kl_labels = torch.Tensor(one_hot_encoder.transform(b_labels.cpu().reshape(-1, 1)).toarray()).to(device)
+                loss = F.kl_div(F.log_softmax(logits, 0), kl_labels, reduction="sum").mean()
+            else:
+                loss = criterion(logits, b_labels)
             epoch_losses.append(loss.item())
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # Todo: uncomment this
@@ -187,7 +216,7 @@ def main(args):
 
         # Ave train & val loss for epoch 
         avg_train_loss = np.mean(epoch_losses)
-        avg_val_loss, avg_val_accuracy = run_validation_set(model, dev_dataloader, device)
+        avg_val_loss, avg_val_accuracy = run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function)
 
         # Record progress
         logger.info(
@@ -222,7 +251,6 @@ def main(args):
     # Test-set:
     analysis(model, test_dataloader, device, "Test-set performance:")
     # **** END OF RUN EXPERIMENT BLOCK **** #
-
 
 
 if __name__ == '__main__':
