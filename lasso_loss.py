@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.functional as F
+
 
 class LassoLoss(nn.Module):
     def __init__(self):

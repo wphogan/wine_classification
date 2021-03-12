@@ -214,7 +214,7 @@ def main(args):
                 loss = criterion(logits, b_labels, weights, lasso_lambda)
             else:
                 loss = criterion(logits, b_labels)
-            # epoch_losses.append(loss.item())
+            epoch_losses.append(loss.item())
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # Todo: uncomment this
             optimizer.step()
