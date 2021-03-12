@@ -10,7 +10,7 @@ from transformers import BertForSequenceClassification, AdamW
 from transformers import get_linear_schedule_with_warmup
 
 # Local Imports
-from custom_loss import CustomLoss
+from lasso_loss import LassoLoss
 from utils.data_handler import *
 from utils.utils import *
 
@@ -34,24 +34,27 @@ def load_tokenizer_and_model(device, n_categories):
         'bert/',
         num_labels=int(n_categories),  # binary classification = 2
         output_attentions=False,
-        output_hidden_states=False
+        output_hidden_states=True
     )
     return tok, model.to(device)
 
 
-def run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function):
+def run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function, lasso_lambda):
     model.eval()
     predictions, model_name, eval_losses, true_labels = [], [], [], []
     for batch in dev_dataloader:
         b_input_ids, b_labels = tuple(t.to(device) for t in batch)
         with torch.no_grad():
-            (cross_ent_loss, logits) = model(b_input_ids,
+            (cross_ent_loss, logits, hidden_states) = model(b_input_ids,
                                              token_type_ids=None,
                                              labels=b_labels.long())
 
         if loss_function == 'kl_divergence':
             kl_labels = torch.Tensor(one_hot_encoder.transform(b_labels.cpu().reshape(-1, 1)).toarray()).to(device)
             loss = F.kl_div(F.log_softmax(logits, 0), kl_labels, reduction="sum").mean()
+        elif loss_function == 'lasso':
+            weights = hidden_states[0]
+            loss = criterion(logits, b_labels, weights, lasso_lambda)
         else:
             loss = criterion(logits, b_labels)
         eval_losses.append(loss.item())
@@ -117,23 +120,24 @@ def main(args):
     adam_epsilon = 1e-8
     set_optimizer = 'adam'  # sdg or adam
     remove_stopwords = False  # T/F
-    loss_function = 'kl_divergence'  # cross_entropy, kl_divergence, custom
-    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name'
+    loss_function = 'lasso'  # cross_entropy, kl_divergence, lasso
+    lasso_lambda = 0.1
+    experiment_title = 'Baseline Bert Experiment - No price, points, or taster_name, no description'
 
     # Record experiment settings:
     record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
-               loss_function, set_optimizer)
+               loss_function, lasso_lambda, set_optimizer)
 
     # Loss function
     if loss_function == 'cross_entropy':
         criterion = nn.CrossEntropyLoss()
     elif loss_function == 'kl_divergence':
         criterion = nn.KLDivLoss()
-    elif loss_function == 'custom':
-        criterion = CustomLoss()
+    elif loss_function == 'lasso':
+        criterion = LassoLoss()
     else:
         raise Exception(
-            'Loss function not recognized. Please select from "cross_entropy", "kl_divergence", "custom"')
+            'Loss function not recognized. Please select from "cross_entropy", "kl_divergence", "lasso"')
 
 
     # Directories
@@ -197,7 +201,7 @@ def main(args):
         for step, batch in enumerate(train_dataloader):
             b_input_ids, b_labels = tuple(t.to(device) for t in batch)
             model.zero_grad()
-            cross_ent_loss, logits = model(b_input_ids,
+            cross_ent_loss, logits, hidden_states = model(b_input_ids,
                                            token_type_ids=None,
                                            labels=b_labels.long())
 
@@ -205,9 +209,12 @@ def main(args):
             if loss_function == 'kl_divergence': # convert to one-hot labels
                 kl_labels = torch.Tensor(one_hot_encoder.transform(b_labels.cpu().reshape(-1, 1)).toarray()).to(device)
                 loss = F.kl_div(F.log_softmax(logits, 0), kl_labels, reduction="sum").mean()
+            elif loss_function == 'lasso':
+                weights = hidden_states[0]
+                loss = criterion(logits, b_labels, weights, lasso_lambda)
             else:
                 loss = criterion(logits, b_labels)
-            epoch_losses.append(loss.item())
+            # epoch_losses.append(loss.item())
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # Todo: uncomment this
             optimizer.step()
@@ -216,7 +223,7 @@ def main(args):
 
         # Ave train & val loss for epoch 
         avg_train_loss = np.mean(epoch_losses)
-        avg_val_loss, avg_val_accuracy = run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function)
+        avg_val_loss, avg_val_accuracy = run_validation_set(model, dev_dataloader, device, criterion, one_hot_encoder, loss_function, lasso_lambda)
 
         # Record progress
         logger.info(

@@ -25,7 +25,7 @@ def fit_labels(f_train, f_dev, f_test):
     return label_encoder, n_categories, one_hot_encoder
 
 
-def initial_load(file_name, label_encoder, no_stop_words=True):
+def initial_load(file_name, label_encoder, no_stop_words=False):
     '''
     Load data from file, return features (x) and labels (y)
     '''
@@ -40,9 +40,12 @@ def initial_load(file_name, label_encoder, no_stop_words=True):
     #     df['points']) + ' ' + df['title'] + ' ' + df['description'] # All fields
 
     # Without price, points, and taster_name:
-    df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + \
-                           df['region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description']
+    # df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + \
+    #                        df['region_2'] + ' ' + df['winery'] + ' ' + df['title'] + ' ' + df['description']
 
+    # Without price, points, and taster_name, no description:
+    df['model_features'] = df['country'] + ' ' + df['designation'] + ' ' + df['province'] + ' ' + df['region_1'] + ' ' + \
+                           df['region_2'] + ' ' + df['winery'] + ' ' + df['title']
     # Just the title:
     # df['model_features'] = df['title']
 

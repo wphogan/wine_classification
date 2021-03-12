@@ -68,7 +68,7 @@ def save_model(time_stamp, model, tokenizer, epochs, batch_size, max_len, learni
 
 
 def record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokenizer_name, experiment_title, logger,
-               loss_func, set_optimizer=False):
+               loss_func, lasso_lambda, set_optimizer=False):
     messages = [
         f'++++++++++++{experiment_title}++++++++++++',
         f'Epochs: {epochs}',
@@ -78,7 +78,8 @@ def record_exp(epochs, batch_size, max_len, learning_rate, adam_epsilon, tokeniz
         f'tokenizer name: {tokenizer_name}',
         f'adam_epsilon: {adam_epsilon}',
         f'optimizer: {set_optimizer}',
-        f'loss function: {loss_func}'
+        f'loss function: {loss_func}',
+        f'lasso lambda: {lasso_lambda}'
     ]
     for message in messages: # Print and log experimental setup
         print(message)
